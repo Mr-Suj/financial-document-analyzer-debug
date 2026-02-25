@@ -286,12 +286,20 @@ Purpose:
 
 ---
 
+## Python version tested: Python 3.11
+
+* CrewAI frequently breaks on 3.12+ or older versions.
+
+---
+
 ## CrewAI Reference
 
 https://docs.crewai.com/en/quickstart
 
 ---
 
-## Author
+## 📖 Author
 
-Sujal Gowda J M
+**Sujal Gowda J M**  
+
+📧 Email: [sujalgowda42@gmail.com](mailto:sujalgowda42@gmail.com)  
