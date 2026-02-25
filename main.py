@@ -1,114 +1,139 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 import os
 import uuid
+import sqlite3
 
-# NOTE:
-# We keep imports minimal because we are running in MOCK MODE
-# to avoid OpenAI quota issues.
+from crewai import Crew, Process
+from agents import financial_analyst
+from task import financial_analysis_task
 
 app = FastAPI(title="Financial Document Analyzer")
 
-
-# ============================================
-# MOCK CREW EXECUTION (No OpenAI Required)
-# ============================================
-
-def run_crew(query: str, file_path: str = "data/sample.pdf"):
-    """
-    Mocked Crew execution.
-    This simulates AI output without calling any external API.
-    """
-
-    mock_response = f"""
-    Financial Analysis Report (Mocked Response)
-
-    Query:
-    {query}
-
-    ---------------------------------------
-    Summary:
-    - Revenue trend appears stable with moderate YoY growth.
-    - Operating margins show slight compression.
-    - Cash flow remains positive.
-
-    Investment Insights:
-    - Consider long-term holding strategy.
-    - Diversification recommended.
-    - Monitor macroeconomic indicators.
-
-    Risk Factors:
-    - Market volatility
-    - Regulatory changes
-    - Sector competition
-
-    NOTE:
-    This is a mocked AI response used for debugging demonstration.
-    """
-
-    return mock_response
+DATABASE = "analysis.db"
 
 
-# ============================================
-# API ENDPOINTS
-# ============================================
+# ---------- DATABASE SETUP ----------
+def init_db():
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS analysis_results (
+            id TEXT PRIMARY KEY,
+            query TEXT,
+            result TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
+
+
+# ---------- CREW RUNNER ----------
+def run_crew(query: str):
+
+    try:
+        financial_crew = Crew(
+            agents=[financial_analyst],
+            tasks=[financial_analysis_task],
+            process=Process.sequential,
+        )
+
+        result = financial_crew.kickoff(inputs={"query": query})
+        return str(result)
+
+    except Exception as e:
+
+        print("LLM execution failed. Using fallback mock response.")
+        print("Error:", e)
+
+        # SAFE FALLBACK (only if API fails)
+        mock_result = f"""
+Mock Analysis (Fallback Mode)
+
+The system could not access external LLM services.
+Returning fallback analysis to maintain pipeline stability.
+
+Query received:
+{query}
+
+Sample Investment Insight:
+- Market volatility appears elevated.
+- Diversification recommended.
+- Further analysis required with full LLM access.
+"""
+
+        return mock_result
+
+
+# ---------- BACKGROUND WORKER ----------
+def process_analysis(job_id: str, query: str):
+
+    result = run_crew(query)
+
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO analysis_results VALUES (?, ?, ?)",
+        (job_id, query, result),
+    )
+
+    conn.commit()
+    conn.close()
+
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
     return {"message": "Financial Document Analyzer API is running"}
 
 
 @app.post("/analyze")
-async def analyze_financial_document(
+async def analyze(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    query: str = Form(default="Analyze this financial document for investment insights")
+    query: str = Form(default="Analyze this financial document"),
 ):
-    """
-    Analyze financial document and provide investment recommendations
-    """
 
-    file_id = str(uuid.uuid4())
-    file_path = f"data/financial_document_{file_id}.pdf"
+    job_id = str(uuid.uuid4())
 
-    try:
-        # Ensure data folder exists
-        os.makedirs("data", exist_ok=True)
+    os.makedirs("data", exist_ok=True)
+    file_path = f"data/{job_id}.pdf"
 
-        # Save uploaded file
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
 
-        # Validate query
-        if not query:
-            query = "Analyze this financial document for investment insights"
+    background_tasks.add_task(process_analysis, job_id, query)
 
-        # Run mocked AI analysis
-        response = run_crew(query=query.strip(), file_path=file_path)
-
-        return {
-            "status": "success",
-            "query": query,
-            "analysis": response,
-            "file_processed": file.filename
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing financial document: {str(e)}")
-
-    finally:
-        # Cleanup uploaded file
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except:
-                pass
+    return {
+        "status": "queued",
+        "job_id": job_id,
+        "message": "Analysis started in background worker"
+    }
 
 
-# ============================================
-# RUN SERVER
-# ============================================
+@app.get("/result/{job_id}")
+async def get_result(job_id: str):
+
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT result FROM analysis_results WHERE id=?",
+        (job_id,),
+    )
+
+    data = cursor.fetchone()
+    conn.close()
+
+    if not data:
+        return {"status": "processing"}
+
+    return {"status": "completed", "analysis": data[0]}
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
