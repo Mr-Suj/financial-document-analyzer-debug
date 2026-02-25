@@ -200,7 +200,7 @@ Edit `.env`:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-Recruiters can use their own API key for testing.
+Note: Provide your own OpenAI API key in the .env file to enable real LLM execution.
 
 ---
 
