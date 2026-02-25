@@ -86,7 +86,7 @@ This keeps debugging focused on architecture rather than external API limits.
 
 ### 1️⃣ Clone Repository
 ```
-git clone <your-repo-link>
+git clone https://github.com/Mr-Suj/financial-document-analyzer-debug.git
 cd financial-document-analyzer-debug
 ```
 
