@@ -14,6 +14,7 @@ Key Improvements:
 * Database integration (SQLite)
 * Environment-based API key configuration
 * Graceful fallback mode when LLM quota fails
+* Clean dependency stabilization for easy setup
 
 The system now runs end-to-end and supports asynchronous processing of financial document analysis.
 
@@ -28,12 +29,20 @@ Issues:
 * Pydantic version mismatch
 * CrewAI dependency conflicts
 * OpenAI SDK incompatibilities
+* Build failures due to heavy vector database dependencies
 
 Fix:
 
-* Cleaned requirements.txt
+* Cleaned and stabilized requirements.txt
+* Removed unnecessary heavy dependencies causing installation failures
 * Installed compatible versions
-* Rebuilt virtual environment
+* Rebuilt virtual environment from scratch
+
+Result:
+
+Project installs cleanly using:
+
+pip install -r requirements.txt
 
 ---
 
@@ -48,9 +57,10 @@ Issues:
 
 Fix:
 
-* Migrated to latest CrewAI usage
+* Migrated to latest CrewAI usage patterns
 * Implemented proper BaseTool classes
 * Fixed Agent and Task initialization
+* Cleaned tool integration workflow
 
 ---
 
@@ -71,7 +81,7 @@ Fix:
 
 ### 4. OpenAI Quota / Rate Limit Handling
 
-During development, quota limits caused failures.
+During development, API quota limits caused failures.
 
 Engineering Decision:
 
@@ -80,9 +90,10 @@ Engineering Decision:
 
 Benefits:
 
-* Stable pipeline
+* Stable pipeline behavior
 * Recruiters can test using their own API key
 * No crashes during evaluation
+* Demonstrates resilient system design
 
 ---
 
@@ -143,18 +154,16 @@ result TEXT
 
 ## Project Structure
 
-```text
 financial-document-analyzer-debug/
-│
-├── main.py              # FastAPI server + background worker + DB
-├── agents.py            # CrewAI agent definitions
-├── task.py              # Financial analysis task configuration
-├── tools.py             # Custom BaseTool implementations
-├── requirements.txt
-├── .env.example         # Environment variable template
-├── .gitignore
-└── README.md
-```
+
+main.py              # FastAPI server + background worker + DB  
+agents.py            # CrewAI agent definitions  
+task.py              # Financial analysis task configuration  
+tools.py             # Custom BaseTool implementations  
+requirements.txt  
+.env.example         # Environment variable template  
+.gitignore  
+README.md  
 
 ---
 
@@ -162,27 +171,21 @@ financial-document-analyzer-debug/
 
 ### 1️⃣ Clone Repository
 
-```bash
 git clone https://github.com/Mr-Suj/financial-document-analyzer-debug.git
 cd financial-document-analyzer-debug
-```
 
 ---
 
 ### 2️⃣ Create Virtual Environment
 
-```bash
 python -m venv venv
 venv\Scripts\activate
-```
 
 ---
 
 ### 3️⃣ Install Dependencies
 
-```bash
 pip install -r requirements.txt
-```
 
 ---
 
@@ -190,25 +193,19 @@ pip install -r requirements.txt
 
 Copy template:
 
-```bash
 copy .env.example .env
-```
 
 Edit `.env`:
 
-```env
 OPENAI_API_KEY=your_api_key_here
-```
 
-Note: Provide your own OpenAI API key in the .env file to enable real LLM execution.
+Provide your own OpenAI API key in the .env file to enable real LLM execution.
 
 ---
 
 ## Running the Server
 
-```bash
 python main.py
-```
 
 Open Swagger UI:
 
@@ -224,12 +221,10 @@ Uploads financial document and starts background analysis.
 
 Response:
 
-```json
 {
   "status": "queued",
   "job_id": "uuid"
 }
-```
 
 ---
 
@@ -239,20 +234,16 @@ Check analysis result.
 
 Processing:
 
-```json
 {
   "status": "processing"
 }
-```
 
 Completed:
 
-```json
 {
   "status": "completed",
   "analysis": "Generated analysis text"
 }
-```
 
 ---
 
@@ -283,12 +274,15 @@ Purpose:
 * Environment-based configuration
 * Graceful error handling
 * Structured API design
+* Dependency stabilization for smoother installation
 
 ---
 
-## Python version tested: Python 3.11
+## Python Compatibility
 
-* CrewAI frequently breaks on 3.12+ or older versions.
+Tested successfully with Python 3.11.
+
+Dependencies were stabilized to improve compatibility across modern Python environments.
 
 ---
 
@@ -300,6 +294,6 @@ https://docs.crewai.com/en/quickstart
 
 ## 📖 Author
 
-**Sujal Gowda J M**  
+Sujal Gowda J M
 
-📧 Email: [sujalgowda42@gmail.com](mailto:sujalgowda42@gmail.com)  
+Email: sujalgowda42@gmail.com
