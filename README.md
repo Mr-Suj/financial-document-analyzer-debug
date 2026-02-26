@@ -345,7 +345,10 @@ System automatically returns structured mock response.
 
 Tested successfully with Python 3.11.
 
-Dependencies stabilized for improved compatibility across modern Python environments.
+Due to dependency compatibility (CrewAI and vector database stack),
+Python 3.11 provides the most stable runtime environment.
+
+Later Python versions may require additional build tools or dependency adjustments.
 
 ---
 
