@@ -91,7 +91,6 @@ Engineering Decision:
 Benefits:
 
 * Stable pipeline behavior
-* Recruiters can test using their own API key
 * No crashes during evaluation
 * Demonstrates resilient system design
 
